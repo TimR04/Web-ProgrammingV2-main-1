@@ -86,7 +86,7 @@ def fetch_cost_details(city: str, country: str) -> list[dict]:
                 if good_id in ids and p.get("avg") is not None:
                     items.append({
                         "name": p.get("item_name"),
-                        "price": round(p.get("avg"), 2),
+                        "price": round(float(p["usd"]["avg"]), 2) if "usd" in p else None,
                         "currency": p.get("currency", "") or "EUR"
                     })
             except Exception as e:

@@ -138,25 +138,44 @@ def loading_screen():
 @app.route("/result")
 def results_page():
     """
-    Main data processing logic. Fetches all scores, calculates final score,
-    and renders the result page with visual feedback.
+    Main result page logic.
+    - Tries to use cached results from session.
+    - Falls back to fresh calculation if needed.
+    - Redirects to index only if nothing is available.
     """
-    data = session.get("input_data", {})
+    data = session.get("input_data")
+    cached = session.get("results")
+
+    # ✅ If cache is available but input_data is gone
+    if not data and cached:
+        print("⚠️ input_data missing – using cached results")
+        return render_template("result.html", **cached)
+
+    # ⛔ Nothing usable in session
+    if not data:
+        return redirect(url_for("index"))
+
     city = data.get("city")
     country = data.get("country")
     weights = data.get("weights")
 
+    # ✅ If cache exists and data matches → use it
+    if cached and cached.get("city") == city and cached.get("country") == country:
+        print("✅ Using cached results")
+        return render_template("result.html", **cached)
+
+    # 🔁 If required data is missing even after fallback
     if not city or not country or not weights:
         return redirect(url_for("index"))
 
-    # Get ISO code and validate
+    # ISO lookup and validation
     country_code = next((code for code, name in ISO_TO_COUNTRY.items() if name.lower() == country.lower()), None)
     if not country_code:
         return render_template('result.html', error="❌ Country name not recognized in ISO mapping.")
 
     country_name = ISO_TO_COUNTRY[country_code]
 
-    # Step-by-step API and dataset integration
+    # Data fetch (no cache available)
     lat, lon = get_coordinates(city)
     if lat is None or lon is None:
         return render_template('result.html', error="❌ Could not determine coordinates for this city.")
@@ -168,7 +187,6 @@ def results_page():
     health_score = calculate_health_score(country_code)
     weather_data = fetch_weather_data(lat, lon)
 
-    # If any data source fails → abort
     if None in [air_score, cost_score, education_score, safety_score, health_score]:
         return render_template('result.html', error="❌ Failed to load one or more required data points.")
 
@@ -185,23 +203,27 @@ def results_page():
     wikipedia_summary = get_wikipedia_summary(city, lang="en")
     fun_fact = CITY_FUN_FACTS.get(city.lower(), "🌍 Cities are full of surprises!")
 
-    return render_template(
-        "result.html",
-        city=city,
-        country=country,
-        country_code=country_code,
-        cost_score=cost_score,
-        air_score=air_score,
-        education_score=education_score,
-        safety_score=safety_score,
-        health_score=health_score,
-        final_score=final_score,
-        weights=weights,
-        background_path=background_path,
-        wikipedia_summary=wikipedia_summary,
-        weather_data=weather_data,
-        fun_fact=fun_fact
-    )
+    # Save to session
+    result_data = {
+        "city": city,
+        "country": country,
+        "country_code": country_code,
+        "cost_score": cost_score,
+        "air_score": air_score,
+        "education_score": education_score,
+        "safety_score": safety_score,
+        "health_score": health_score,
+        "final_score": final_score,
+        "weights": weights,
+        "background_path": background_path,
+        "wikipedia_summary": wikipedia_summary,
+        "weather_data": weather_data,
+        "fun_fact": fun_fact
+    }
+    session['results'] = result_data
+
+    return render_template("result.html", **result_data)
+
 
 
 # -------------------- Detail Views --------------------
