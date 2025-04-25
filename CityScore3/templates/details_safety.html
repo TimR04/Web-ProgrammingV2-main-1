@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🔐 Crime Index – {{ city }}, {{ country }}</title>
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" />
+  <style>
+    :root {
+      --font-base: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: var(--font-base);
+      overflow-x: hidden;
+    }
+
+    .background-image {
+      background: url('{{ background_path }}') no-repeat center center fixed;
+      background-size: cover;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0.5;
+      z-index: -2;
+    }
+
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(255, 255, 255, 0.3);
+      z-index: -1;
+      pointer-events: none;
+    }
+
+    header, main, footer {
+      padding: 1rem;
+    }
+
+    .container {
+      margin-top: 50px;
+      max-width: 850px;
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      position: relative;
+      z-index: 1;
+    }
+
+    .value-box {
+      font-size: 2.5rem;
+      font-weight: bold;
+      color: #dc3545;
+    }
+
+    .minmax-box {
+      font-size: 1rem;
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Hintergrundbild und Overlay -->
+  <div class="background-image"></div>
+  <div class="overlay"></div>
+
+  <header class="text-center">
+    <h1>🔐 Crime Index – {{ city }}, {{ country }}</h1>
+  </header>
+
+  <main class="container text-center" role="main">
+    {% if crime_value is not none %}
+      <p class="value-box">{{ crime_value }}</p>
+      <p class="text-muted">A higher index means lower safety.</p>
+
+      <div class="minmax-box text-start">
+        <p>🔻 Lowest Crime Index: <strong>{{ min_country }}</strong> ({{ min_value }})</p>
+        <p>🔺 Highest Crime Index: <strong>{{ max_country }}</strong> ({{ max_value }})</p>
+      </div>
+    {% else %}
+      <p class="text-warning">⚠️ No crime data available for this country.</p>
+    {% endif %}
+
+    <div class="text-center mt-4">
+      <a href="/" class="btn btn-secondary">⬅️ Back to Home</a>
+    </div>
+  </main>
+
+  <footer class="text-center py-3">
+    <small>© {{ current_year }} City Score. All rights reserved.</small>
+  </footer>
+</body>
+</html>

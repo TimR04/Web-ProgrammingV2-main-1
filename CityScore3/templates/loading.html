@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Loading Your City Score...</title>
+  <style>
+    :root {
+      --overlay-color: rgba(0, 0, 0, 0.4);
+      --text-color: #ffffff;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      overflow: hidden;
+    }
+
+    .slide {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%;
+      height: 100vh;
+      background-size: cover;
+      background-position: center;
+      opacity: 0;
+      transition: opacity 1s ease-in-out;
+      z-index: 0;
+    }
+
+    .slide.active {
+      opacity: 1;
+      z-index: 1;
+    }
+
+    .overlay {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%;
+      height: 100vh;
+      background: var(--overlay-color);
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .fact-box {
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 20px;
+      padding: 2rem 3rem;
+      text-align: center;
+      color: var(--text-color);
+      backdrop-filter: blur(12px);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+      max-width: 700px;
+      z-index: 3;
+      animation: fadeIn 1s ease-in-out;
+    }
+
+    .fact-box h1 {
+      font-size: 2.8rem;
+      margin-bottom: 1rem;
+    }
+
+    .fact-box h2 {
+      font-size: 1.8rem;
+      margin-bottom: 1rem;
+    }
+
+    .fact-box p {
+      font-size: 1.3rem;
+      line-height: 1.6;
+      margin-bottom: 1rem;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+  {% for item in fun_facts %}
+    <div class="slide" style="background-image: url('{{ item.image }}');"></div>
+  {% endfor %}
+
+  <div class="overlay">
+    <div class="fact-box">
+      <h1 id="city-name">Loading City...</h1>
+      <h2>Did you know?</h2>
+      <p id="fact-text">Fetching interesting city facts... 🌍</p>
+    </div>
+  </div>
+
+  <script>
+    const facts = {{ fun_facts|tojson }};
+    const slides = document.querySelectorAll('.slide');
+    let current = 0;
+
+    function showSlide(index) {
+      slides.forEach((s, i) => s.classList.toggle('active', i === index));
+      document.getElementById('city-name').textContent = `${facts[index].city}`;
+      document.getElementById('fact-text').textContent = facts[index].fact;
+    }
+
+    showSlide(0);
+    setInterval(() => {
+      current = (current + 1) % slides.length;
+      showSlide(current);
+    }, 3000);
+
+    setTimeout(() => {
+      window.location.href = "/result";  // Passe ggf. deine Zielroute an
+    }, 0);
+  </script>
+
+</body>
+</html>

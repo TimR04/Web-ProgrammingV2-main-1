@@ -1,0 +1,67 @@
+site_name: City Score Documentation - By Tim, Barath, Thang, Paul
+site_description: A city comparison app powered by open data
+site_author: Paulaner
+site_url: http://localhost:8000
+
+theme:
+  name: material
+  logo: assets/logo.png
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.top
+    - header.autohide
+    - content.code.copy
+
+nav:
+  - Home: index.md
+  - How It Works: how-it-works.md
+  - Frameworks Used: frameworks.md
+  - Data Sources: data-sources.md
+  - Modules:
+      - app.py: modules/app.md
+      - Air Pollution: modules/airpollution.md
+      - Cost of Living: modules/costofliving.md
+      - Crime Rate: modules/crimerate.md
+      - Current Weather: modules/currentweatherapi.md
+      - Education: modules/education.md
+      - Geocoding: modules/geocoding.md
+      - Health: modules/healthapi.md
+      - ISO Country Loader: modules/iso_country_loader.md
+      - Wikipedia: modules/wikipedia.md
+      - World Bank Explorer: modules/worldbank.md
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: ["CityScore3"]
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.emoji:
+      emoji_index: !!python/name:pymdownx.emoji.twemoji
+      emoji_generator: !!python/name:materialx.emoji.to_svg
