@@ -7,16 +7,22 @@ calculates weighted scores for each city, and renders interactive HTML pages.
 
 Data sources used:
 - Geocoding: OpenStreetMap Nominatim API
-- Air Quality: OpenWeatherMap
+- Air Quality: OpenWeatherMap API
 - Cost of Living: RapidAPI (Cost of Living & Prices)
-- Education & Health: World Bank (via RapidAPI)
+- Education: World Bank API (seperate endpoints)
+- Health: World Bank API (seperate endpoints)
 - Safety: Local CSV (crime_data.csv)
 - Weather: OpenWeatherMap Current Weather API
 - City Info: Wikipedia Summary API
+- City Image: Unsplash API
 """
 
-from flask import Flask, render_template, request, redirect, url_for, session
+import os
+from datetime import datetime
+
 import pandas as pd
+from flask import Flask, render_template, request, redirect, url_for, session
+
 from services.geocoding import get_coordinates
 from services.airpollution import get_normalized_air_quality, fetch_air_pollution_raw
 from services.costofliving import get_normalized_cost_score, fetch_cost_details
@@ -28,8 +34,7 @@ from services.wikipedia import get_wikipedia_summary
 from services.currentweatherapi import fetch_weather_data
 from utils.iso_country_loader import load_iso_mapping
 from utils.city_facts import CITY_FUN_FACTS
-from datetime import datetime
-import os
+from utils.final_score import calculate_city_score
 
 # Define absolute paths to data files (platform-independent)
 BASE_DIR = os.path.dirname(__file__)
@@ -42,38 +47,6 @@ ISO_TO_COUNTRY = load_iso_mapping(ISO_CSV_PATH)
 # Initialize Flask app
 app = Flask(__name__)
 app.secret_key = os.urandom(24)  # Enables session handling
-
-
-def calculate_city_score(cost, air, edu, safety, health, weights):
-    """
-    Calculate the final city score based on individual scores and user-defined weights.
-    Score range: 0 (best) to 100 (worst)
-
-    Args:
-        cost, air, edu, safety, health (float): Normalized scores (0–100)
-        weights (list of float): Weight for each category (should sum to 1.0)
-
-    Returns:
-        float or None: Weighted average score, or None if any score is missing
-    """
-    components = [cost, air, edu, safety, health]
-    if None in components:
-        return None
-    weighted_score = sum(v * w for v, w in zip(components, weights))
-    return round(weighted_score, 2)
-
-
-def get_country_name_from_code(code: str) -> str | None:
-    """
-    Converts a 3-letter ISO country code to full country name.
-
-    Args:
-        code (str): ISO-3 country code (e.g. DEU, USA)
-
-    Returns:
-        str or None: Country name if found, else None
-    """
-    return ISO_TO_COUNTRY.get(code.upper())
 
 
 @app.route("/")
@@ -113,7 +86,6 @@ def score():
     if abs(sum(weights) - 1.0) > 0.01:
         return render_template('result.html', error="❌ Weights must add up to exactly 1.0.")
 
-    # Store input in session for access after redirect
     session['input_data'] = {
         'city': city,
         'country': country,
@@ -129,7 +101,8 @@ def loading_screen():
     Fun loading screen with city facts and image previews.
     """
     fun_facts = [
-        {"city": city, "fact": fact, "image": f"/static/city_photos/{city.lower().replace(' ', '')}.jpg"}
+        {"city": city, "fact": fact,
+         "image": f"/static/city_photos/{city.lower().replace(' ', '')}.jpg"}
         for city, fact in CITY_FUN_FACTS.items()
     ]
     return render_template("loading.html", fun_facts=fun_facts)
@@ -146,12 +119,10 @@ def results_page():
     data = session.get("input_data")
     cached = session.get("results")
 
-    # ✅ If cache is available but input_data is gone
     if not data and cached:
         print("⚠️ input_data missing – using cached results")
         return render_template("result.html", **cached)
 
-    # ⛔ Nothing usable in session
     if not data:
         return redirect(url_for("index"))
 
@@ -159,23 +130,21 @@ def results_page():
     country = data.get("country")
     weights = data.get("weights")
 
-    # ✅ If cache exists and data matches → use it
     if cached and cached.get("city") == city and cached.get("country") == country:
         print("✅ Using cached results")
         return render_template("result.html", **cached)
 
-    # 🔁 If required data is missing even after fallback
     if not city or not country or not weights:
         return redirect(url_for("index"))
 
-    # ISO lookup and validation
-    country_code = next((code for code, name in ISO_TO_COUNTRY.items() if name.lower() == country.lower()), None)
+    country_code = next((code for code, name in ISO_TO_COUNTRY.items()
+                         if name.lower() == country.lower()), None)
+
     if not country_code:
         return render_template('result.html', error="❌ Country name not recognized in ISO mapping.")
 
     country_name = ISO_TO_COUNTRY[country_code]
 
-    # Data fetch (no cache available)
     lat, lon = get_coordinates(city)
     if lat is None or lon is None:
         return render_template('result.html', error="❌ Could not determine coordinates for this city.")
@@ -203,7 +172,6 @@ def results_page():
     wikipedia_summary = get_wikipedia_summary(city, lang="en")
     fun_fact = CITY_FUN_FACTS.get(city.lower(), "🌍 Cities are full of surprises!")
 
-    # Save to session
     result_data = {
         "city": city,
         "country": country,
@@ -225,7 +193,6 @@ def results_page():
     return render_template("result.html", **result_data)
 
 
-
 # -------------------- Detail Views --------------------
 
 @app.route("/details/cost")
@@ -238,7 +205,15 @@ def details_cost():
     country_name = ISO_TO_COUNTRY.get(country_code.upper(), country_code)
     details = fetch_cost_details(city, country_name)
     background_path = download_city_background(city) or "/static/default.jpg"
-    return render_template("details_cost.html", city=city, country=country_name, details=details, background_path=background_path, current_year=datetime.now().year)
+
+    return render_template(
+        "details_cost.html",
+        city=city,
+        country=country_name,
+        details=details,
+        background_path=background_path,
+        current_year=datetime.now().year
+    )
 
 
 @app.route("/details/air")
@@ -251,7 +226,15 @@ def details_air():
     lat, lon = get_coordinates(city)
     raw_data = fetch_air_pollution_raw(lat, lon)
     background_path = download_city_background(city) or "/static/default.jpg"
-    return render_template("details_air.html", city=city, country=country, data=raw_data, background_path=background_path, current_year=datetime.now().year)
+
+    return render_template(
+        "details_air.html",
+        city=city,
+        country=country,
+        data=raw_data,
+        background_path=background_path,
+        current_year=datetime.now().year
+    )
 
 
 @app.route("/details/education")
@@ -267,7 +250,15 @@ def details_education():
 
     details = fetch_education_details(country)
     background_path = download_city_background(city) or "/static/default.jpg"
-    return render_template("details_education.html", city=city, country=country, details=details, background_path=background_path, current_year=datetime.now().year)
+
+    return render_template(
+        "details_education.html",
+        city=city,
+        country=country,
+        details=details,
+        background_path=background_path,
+        current_year=datetime.now().year
+    )
 
 
 @app.route("/details/safety")
@@ -315,7 +306,14 @@ def details_health():
     background_path = download_city_background(city) or "/static/default.jpg"
     details = fetch_health_details(iso_code)
 
-    return render_template("details_health.html", city=city, country=country_name, details=details, background_path=background_path, current_year=datetime.now().year)
+    return render_template(
+        "details_health.html",
+        city=city,
+        country=country_name,
+        details=details,
+        background_path=background_path,
+        current_year=datetime.now().year
+    )
 
 
 # -------------------- App Launch --------------------

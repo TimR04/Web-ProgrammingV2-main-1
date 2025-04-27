@@ -52,13 +52,13 @@ def get_normalized_air_quality(lat: float, lon: float) -> int | None:
         pm10 = components.get("pm10", 0)
         no2 = components.get("no2", 0)
 
-        # Normalization thresholds based on WHO recommendations
+        # based on WHO recommendations
         score_pm25 = normalize(pm25, 0, 25)
         score_pm10 = normalize(pm10, 0, 50)
         score_no2 = normalize(no2, 0, 40)
 
         final_score = score_pm25 * 0.5 + score_pm10 * 0.3 + score_no2 * 0.2
-        return round(final_score)  # ✅ korrekt: hoher Score = gute Luft
+        return round(final_score) 
 
 
     except Exception as e:

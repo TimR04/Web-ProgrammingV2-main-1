@@ -37,7 +37,7 @@ http://127.0.0.1:5000
 ### 1. Open Terminal and navigate to your project folder:
 
 ```bash
-cd C:\Users\<YourName>\Documents\Web-ProgrammingV2-main\CityScore3
+cd CityScore3
 ```
 ### 2. Create and activate a virtual environment:
 

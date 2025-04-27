@@ -54,7 +54,18 @@ WEIGHTS = {
     "Internet (60 Mbps)": 0.05
 }
 
+
 def fetch_prices(city: str, country: str) -> list:
+    """
+    Fetch cost of living data from the RapidAPI Cost of Living API.
+
+    Args:
+        city (str): City name.
+        country (str): Country name.
+
+    Returns:
+        list: List of price data dictionaries.
+    """
     url = "https://cost-of-living-and-prices.p.rapidapi.com/prices"
     querystring = {"city_name": city, "country_name": country}
     headers = {
@@ -70,7 +81,18 @@ def fetch_prices(city: str, country: str) -> list:
         print(f"❌ Error fetching cost data: {e}")
         return []
 
+
 def fetch_cost_details(city: str, country: str) -> list[dict]:
+    """
+    Fetch detailed cost of living breakdown categorized.
+
+    Args:
+        city (str): City name.
+        country (str): Country name.
+
+    Returns:
+        list[dict]: List of categories with products and average prices.
+    """
     prices = fetch_prices(city, country)
     detailed = []
 
@@ -102,6 +124,7 @@ def fetch_cost_details(city: str, country: str) -> list[dict]:
 
     return detailed
 
+
 def get_normalized_cost_score(city, country):
     """
     Calculates a cost of living score (0–100), using USD average prices.
@@ -126,13 +149,14 @@ def get_normalized_cost_score(city, country):
 
         mean_price = sum(avg_prices_usd) / len(avg_prices_usd)
 
-        # Enhanced normalization range for stronger spread
-        min_expected = 400   # super cheap cities
+        min_expected = 400   # cheap cities
         max_expected = 8000  # super expensive cities
 
-        # Non-linear scaling using exponential decay
         normalized = (max_expected - mean_price) / (max_expected - min_expected)
-        score = max(0, min(round((normalized ** 1.5) * 100, 2), 100))
+        normalized = max(0, normalized)  # ➡️ Negative Werte verhindern!
+
+        score = round((normalized ** 1.5) * 100, 2)
+        score = max(0, min(score, 100))  # ➡️ Begrenzung auf 0–100
 
         return score
 
@@ -142,4 +166,3 @@ def get_normalized_cost_score(city, country):
         print(f"🧪 Using fallback cost score: {fallback_score}")
         return fallback_score
 
-    

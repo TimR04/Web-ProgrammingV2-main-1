@@ -43,6 +43,7 @@ nav:
       - ISO Country Loader: modules/iso_country_loader.md
       - Wikipedia: modules/wikipedia.md
       - World Bank Explorer: modules/worldbank.md
+      - Final Score: modules/final_score.md
 
 plugins:
   - search
